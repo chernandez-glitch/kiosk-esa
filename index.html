@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ONEFix ESA Kiosk</title>
+  <style>
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d27;
+      --surf2:   #252836;
+      --surf3:   #2d3347;
+      --accent:  #2563eb;
+      --success: #16a34a;
+      --danger:  #dc2626;
+      --warning: #d97706;
+      --text:    #f1f5f9;
+      --text2:   #94a3b8;
+      --text3:   #64748b;
+      --border:  #2d3748;
+      --r:       14px;
+      --rsm:     8px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body {
+      width:100%; min-height:100vh; background:var(--bg); color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* ── Screens ── */
+    .screen { display:none; min-height:100vh; padding:20px 16px 52px;
+      flex-direction:column; align-items:center; }
+    .screen.active { display:flex; }
+    #s-loading, #s-result { justify-content:center; }
+
+    /* ── Header bar ── */
+    .hdr { width:100%; max-width:460px; display:flex; align-items:center;
+      justify-content:space-between; margin-bottom:22px; }
+    .brand { font-size:18px; font-weight:800; color:var(--accent); letter-spacing:-.5px; }
+    .brand span { color:var(--text); }
+    .brand-tag { font-size:10px; color:var(--text3); letter-spacing:1.5px;
+      text-transform:uppercase; margin-left:4px; vertical-align:middle; }
+    .back-btn { background:none; border:none; color:var(--text2); font-size:14px;
+      cursor:pointer; padding:6px 0; display:flex; align-items:center; gap:6px;
+      font-family:inherit; }
+
+    /* ── Card ── */
+    .card { width:100%; max-width:460px; background:var(--surface);
+      border:1px solid var(--border); border-radius:var(--r);
+      padding:18px; margin-bottom:12px; }
+    .card-sm { padding:14px; }
+
+    /* ── Equipment card ── */
+    .eq-top { display:flex; justify-content:space-between;
+      align-items:flex-start; gap:10px; margin-bottom:10px; }
+    .eq-name { font-size:21px; font-weight:700; line-height:1.2; }
+    .eq-code { font-size:12px; color:var(--text2); margin-top:3px; }
+
+    /* ── Badges ── */
+    .badges { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+    .badge { display:inline-flex; align-items:center; gap:5px;
+      font-size:12px; font-weight:600; padding:4px 10px;
+      border-radius:99px; white-space:nowrap; }
+    .b-active  { background:rgba(22,163,74,.15);  color:#4ade80; border:1px solid rgba(22,163,74,.3); }
+    .b-idle    { background:rgba(100,116,139,.15); color:var(--text2); border:1px solid var(--border); }
+    .b-elapsed { background:rgba(217,119,6,.15);  color:#fbbf24; border:1px solid rgba(217,119,6,.3); }
+    .b-type    { background:var(--surf2); color:var(--text2); border:1px solid var(--border);
+      font-size:11px; font-weight:500; }
+    .dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+
+    /* ── Info rows ── */
+    .irow { display:flex; align-items:center; gap:10px; padding:7px 0;
+      font-size:14px; border-top:1px solid var(--border); }
+    .irow:first-child { border-top:none; padding-top:0; }
+    .irow-icon { color:var(--text3); flex-shrink:0; width:18px; text-align:center; font-size:15px; }
+    .irow-lbl  { color:var(--text2); min-width:88px; font-size:13px; }
+    .irow-val  { font-weight:500; }
+
+    /* ── Section title ── */
+    .sec-title { width:100%; max-width:460px; font-size:20px; font-weight:700; margin-bottom:16px; }
+
+    /* ── Form fields ── */
+    .fg { width:100%; max-width:460px; margin-bottom:14px; }
+    label { display:block; font-size:11px; color:var(--text2); margin-bottom:6px;
+      font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
+    select, input[type="number"], input[type="text"], textarea {
+      width:100%; padding:13px 14px;
+      background:var(--surf2); border:1px solid var(--border);
+      border-radius:var(--rsm); color:var(--text); font-size:15px;
+      -webkit-appearance:none; appearance:none; font-family:inherit; }
+    select:focus, input:focus, textarea:focus { outline:none; border-color:var(--accent); }
+    select option { background:var(--surf2); }
+    textarea { min-height:100px; resize:vertical; line-height:1.5; }
+    .hint { font-size:12px; color:var(--text2); margin-top:5px; }
+
+    /* ── Buttons ── */
+    .btn { width:100%; max-width:460px; padding:15px; border-radius:var(--r);
+      border:none; font-size:16px; font-weight:600; cursor:pointer; letter-spacing:.2px;
+      margin-bottom:10px; transition:opacity .15s; font-family:inherit; }
+    .btn:active  { opacity:.78; }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+    .btn-blue  { background:var(--accent);  color:#fff; }
+    .btn-green { background:var(--success); color:#fff; }
+    .btn-red   { background:var(--danger);  color:#fff; }
+    .btn-ghost { background:var(--surf2); color:var(--text); border:1px solid var(--border); }
+
+    /* 2-column button row */
+    .btn-row { width:100%; max-width:460px; display:grid;
+      grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+    .btn-row .btn { margin-bottom:0; }
+
+    /* ── Loading ── */
+    .spinner { width:44px; height:44px; border:4px solid rgba(255,255,255,.08);
+      border-top-color:var(--accent); border-radius:50%;
+      animation:spin .8s linear infinite; margin-bottom:16px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .ld-txt { color:var(--text2); font-size:15px; }
+
+    /* ── Result ── */
+    #s-result { text-align:center; }
+    .ri { font-size:64px; line-height:1; margin-bottom:20px; }
+    .rt { font-size:22px; font-weight:700; margin-bottom:10px; }
+    .rm { font-size:14px; color:var(--text2); line-height:1.7;
+      margin-bottom:32px; max-width:320px; white-space:pre-line; }
+
+    /* ── Error box ── */
+    .err-box { width:100%; max-width:460px;
+      background:rgba(220,38,38,.1); border:1px solid rgba(220,38,38,.3);
+      border-radius:var(--r); padding:16px;
+      font-size:14px; color:#fca5a5; line-height:1.6; margin-bottom:16px; }
+
+    .spacer { flex:1; min-height:16px; }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen active">
+  <div class="spinner"></div>
+  <p class="ld-txt">Verificando equipo...</p>
+</div>
+
+<!-- ERROR FATAL -->
+<div id="s-error" class="screen">
+  <div class="hdr">
+    <div><span class="brand">ONE<span>Fix</span></span><span class="brand-tag">ESA Kiosk</span></div>
+  </div>
+  <div style="font-size:52px;margin-bottom:18px;text-align:center">⚠️</div>
+  <div style="font-size:20px;font-weight:700;margin-bottom:12px;text-align:center">QR Inválido</div>
+  <div id="err-msg" class="err-box"></div>
+</div>
+
+<!-- MAIN -->
+<div id="s-main" class="screen">
+  <div class="hdr">
+    <div><span class="brand">ONE<span>Fix</span></span><span class="brand-tag">ESA Kiosk</span></div>
+  </div>
+
+  <div class="card">
+    <div class="eq-top">
+      <div>
+        <div class="eq-name" id="m-nombre"></div>
+        <div class="eq-code" id="m-codigo"></div>
+      </div>
+      <span class="badge b-type" id="m-tipo"></span>
+    </div>
+    <div class="badges">
+      <span class="badge" id="m-badge"></span>
+      <span class="badge b-elapsed" id="m-elapsed" style="display:none"></span>
+    </div>
+    <div id="m-info-rows"></div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="btn-row" id="m-row-act" style="display:none">
+    <button class="btn btn-blue" onclick="goActividad()">≡ Actividad</button>
+    <button class="btn btn-red"  onclick="goFalla()">⚠ Falla</button>
+  </div>
+  <button class="btn btn-green" id="btn-cerrar" style="display:none" onclick="goCerrar()">✓ Cerrar Turno</button>
+  <button class="btn btn-blue"  id="btn-iniciar" style="display:none" onclick="goIniciar()">▶ Iniciar Turno</button>
+</div>
+
+<!-- INICIAR TURNO -->
+<div id="s-iniciar" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goMain()">
+      &#8249; Volver
+    </button>
+  </div>
+  <div class="sec-title">Iniciar Turno</div>
+
+  <div class="card card-sm" style="margin-bottom:20px">
+    <div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.4px;text-transform:uppercase">Equipo</div>
+    <div style="font-weight:600;font-size:16px;margin-top:5px" id="i-eq"></div>
+  </div>
+
+  <div class="fg">
+    <label>Operador responsable</label>
+    <input type="text" id="i-operador" list="i-op-list" placeholder="Selecciona o escribe el nombre...">
+    <datalist id="i-op-list"></datalist>
+    <div class="hint">Elige de la lista o escribe el nombre si no aparece.</div>
+  </div>
+
+  <div class="fg">
+    <label>Proyecto</label>
+    <select id="i-proyecto"><option value="">— Selecciona proyecto —</option></select>
+  </div>
+
+  <div class="fg">
+    <label id="i-horo-lbl">Horómetro inicial</label>
+    <input type="number" id="i-horo" min="0" step="0.1" placeholder="Ej: 1234.5">
+    <div class="hint" id="i-horo-hint"></div>
+  </div>
+
+  <div class="spacer"></div>
+  <button class="btn btn-green" id="btn-ini-ok" onclick="submitIniciar()">Confirmar Inicio de Turno</button>
+  <button class="btn btn-ghost" onclick="goMain()">Cancelar</button>
+</div>
+
+<!-- CERRAR TURNO -->
+<div id="s-cerrar" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goMain()">&#8249; Volver</button>
+  </div>
+  <div class="sec-title">Cerrar Turno</div>
+
+  <div class="card card-sm" style="margin-bottom:16px" id="c-info"></div>
+
+  <div class="fg">
+    <label id="c-horo-lbl">Horómetro final</label>
+    <input type="number" id="c-horo" min="0" step="0.1">
+    <div class="hint" id="c-horo-hint"></div>
+  </div>
+
+  <div class="spacer"></div>
+  <button class="btn btn-red" id="btn-cer-ok" onclick="submitCerrar()">Confirmar Cierre de Turno</button>
+  <button class="btn btn-ghost" onclick="goMain()">Cancelar</button>
+</div>
+
+<!-- REPORTAR FALLA -->
+<div id="s-falla" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goMain()">&#8249; Volver</button>
+  </div>
+  <div class="sec-title">Reportar Falla</div>
+
+  <div class="card card-sm" style="margin-bottom:16px">
+    <div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.4px;text-transform:uppercase">Equipo</div>
+    <div style="font-weight:600;font-size:15px;margin-top:5px" id="f-eq"></div>
+    <div style="font-size:13px;color:var(--text2);margin-top:4px" id="f-op"></div>
+  </div>
+
+  <div class="fg">
+    <label>Descripción de la falla *</label>
+    <textarea id="f-desc" placeholder="Describe qué está fallando: sistema, componente o síntoma observado..."></textarea>
+  </div>
+
+  <div class="fg">
+    <label>Tipo de reporte</label>
+    <select id="f-tipo">
+      <option value="Solo Reporte">Solo Reporte — equipo sigue operando</option>
+      <option value="Paro Parcial">Paro Parcial — capacidad reducida</option>
+      <option value="Paro Total">Paro Total — equipo fuera de servicio</option>
+    </select>
+  </div>
+
+  <div class="fg">
+    <label>Prioridad</label>
+    <select id="f-prio">
+      <option value="MEDIA">MEDIA</option>
+      <option value="ALTA">ALTA</option>
+      <option value="BAJA">BAJA</option>
+    </select>
+  </div>
+
+  <div class="spacer"></div>
+  <button class="btn btn-red" id="btn-falla-ok" onclick="submitFalla()">Enviar Reporte de Falla</button>
+  <button class="btn btn-ghost" onclick="goMain()">Cancelar</button>
+</div>
+
+<!-- ACTIVIDAD -->
+<div id="s-actividad" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goMain()">&#8249; Volver</button>
+  </div>
+  <div class="sec-title">Registrar Actividad</div>
+
+  <div class="card card-sm" style="margin-bottom:16px">
+    <div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.4px;text-transform:uppercase">Equipo</div>
+    <div style="font-weight:600;font-size:15px;margin-top:5px" id="a-eq"></div>
+    <div style="font-size:13px;color:var(--text2);margin-top:4px" id="a-turno"></div>
+  </div>
+
+  <div class="fg" id="a-fg-sel">
+    <label>Actividad *</label>
+    <select id="a-actividad"><option value="">— Selecciona actividad —</option></select>
+  </div>
+  <div class="fg" id="a-fg-txt" style="display:none">
+    <label>Actividad *</label>
+    <input type="text" id="a-actividad-txt" placeholder="Describe la actividad realizada">
+  </div>
+
+  <div class="fg">
+    <label>Descripción (opcional)</label>
+    <input type="text" id="a-desc" placeholder="Detalles adicionales">
+  </div>
+
+  <div class="fg">
+    <label id="a-horo-lbl">Horómetro final *</label>
+    <input type="number" id="a-horo" min="0" step="0.1">
+    <div class="hint" id="a-horo-hint"></div>
+  </div>
+
+  <div class="spacer"></div>
+  <button class="btn btn-blue" id="btn-act-ok" onclick="submitActividad()">Registrar Actividad</button>
+  <button class="btn btn-ghost" onclick="goMain()">Cancelar</button>
+</div>
+
+<!-- RESULTADO -->
+<div id="s-result" class="screen">
+  <div class="ri" id="r-icon"></div>
+  <div class="rt" id="r-title"></div>
+  <div class="rm" id="r-msg"></div>
+  <button class="btn btn-blue" style="max-width:300px" onclick="goMain()">Volver al inicio</button>
+</div>
+
+<script>
+// ============================================================================
+// ONEFix ESA — El Salvador
+// GAS apunta al deployment PÚBLICO de la copia "ONEFix ESA" (Google Sheet de ESA).
+// (Deployment @12 verificado como público / sin login.)
+// ============================================================================
+var GAS   = 'https://script.google.com/macros/s/AKfycbykRqzHOvaQMxYrJOM1mKgGMmbZF3GRdWKdlOYEfFtAlo-CyEZ2sTuODLhiP9OEg9px/exec';
+var TOKEN = new URLSearchParams(window.location.search).get('kiosk') || '';
+var ST    = null;
+var _timer = null;
+
+// ── Screens ─────────────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── API ──────────────────────────────────────────────────────────────────────
+function apiGet(params) {
+  var url = GAS + '?api=kiosk&token=' + encodeURIComponent(TOKEN);
+  Object.keys(params).forEach(function(k) {
+    url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  });
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+}
+
+function apiPost(body) {
+  body.token = TOKEN;
+  return fetch(GAS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+}
+
+// ── Elapsed timer ────────────────────────────────────────────────────────────
+function calcElapsed(fechaStr) {
+  if (!fechaStr) return '';
+  var s = new Date(fechaStr.replace('T', ' '));
+  if (isNaN(s.getTime())) return '';
+  var ms = Date.now() - s.getTime();
+  if (ms < 0) return '';
+  var h = Math.floor(ms / 3600000);
+  var m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? h + 'h ' + (m > 0 ? m + 'm' : '') : (m || 1) + 'm';
+}
+
+function startElapsedTimer(fechaStr) {
+  if (_timer) clearInterval(_timer);
+  var el = document.getElementById('m-elapsed');
+  if (!el) return;
+  function upd() {
+    var t = calcElapsed(fechaStr);
+    if (t) { el.style.display = ''; el.textContent = '⏱ ' + t; }
+    else     el.style.display = 'none';
+  }
+  upd();
+  _timer = setInterval(upd, 60000);
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+function goMain() { cargarEstado(); }
+
+function cargarEstado() {
+  show('s-loading');
+  if (_timer) { clearInterval(_timer); _timer = null; }
+  if (!TOKEN) {
+    show('s-error');
+    document.getElementById('err-msg').textContent =
+      'Este QR no contiene un token válido. Escanea el QR correcto generado desde el sistema.';
+    return;
+  }
+  apiGet({ action: 'estado' })
+    .then(function(data) {
+      if (!data.valid) {
+        show('s-error');
+        document.getElementById('err-msg').textContent = data.mensaje || 'QR inválido o revocado.';
+        return;
+      }
+      ST = data;
+      renderMain();
+      show('s-main');
+    })
+    .catch(function() {
+      show('s-error');
+      document.getElementById('err-msg').textContent =
+        'No se pudo conectar con el servidor.\nVerifica tu conexión a internet e intenta de nuevo.';
+    });
+}
+
+function renderMain() {
+  var eq = ST.equipo;
+  document.getElementById('m-nombre').textContent = eq.nombre;
+  document.getElementById('m-codigo').textContent = eq.codigo + (eq.modelo ? ' · ' + eq.modelo : '');
+  document.getElementById('m-tipo').textContent   = eq.tipo || 'Equipo';
+
+  var badge    = document.getElementById('m-badge');
+  var elapsed  = document.getElementById('m-elapsed');
+  var infoDiv  = document.getElementById('m-info-rows');
+  var rowAct   = document.getElementById('m-row-act');
+  var btnCer   = document.getElementById('btn-cerrar');
+  var btnIni   = document.getElementById('btn-iniciar');
+
+  if (ST.turnoAbierto && ST.datosTurno) {
+    var dt = ST.datosTurno;
+    badge.className = 'badge b-active';
+    badge.innerHTML = '<div class="dot"></div> ACTIVO';
+    elapsed.style.display = '';
+    startElapsedTimer(dt.fechaInicio);
+
+    var uLbl = eq.unidad === 'kms' ? 'Km inicial' : 'Horóm. inicial';
+    infoDiv.innerHTML =
+      irow('👤', 'Operador', dt.operador) +
+      irow('📁', 'Proyecto',  dt.proyecto) +
+      irow('🕐', uLbl,        dt.hInicial != null ? dt.hInicial + ' ' + eq.unidad : '—') +
+      (eq.proyecto && eq.proyecto !== dt.proyecto ? irow('📍', 'Área', eq.proyecto) : '');
+
+    rowAct.style.display = 'grid';
+    btnCer.style.display = 'block';
+    btnIni.style.display = 'none';
+  } else {
+    badge.className = 'badge b-idle';
+    badge.innerHTML = '<div class="dot"></div> SIN TURNO';
+    elapsed.style.display = 'none';
+
+    var refTxt = ST.ultimoHorometro != null
+      ? 'Último registro: ' + ST.ultimoHorometro + ' ' + eq.unidad
+      : 'Sin registros previos';
+    infoDiv.innerHTML =
+      (eq.proyecto ? irow('📍', 'Área', eq.proyecto) : '') +
+      '<div class="irow"><span class="irow-icon">🕐</span>' +
+        '<span style="font-size:13px;color:var(--text2)">' + esc(refTxt) + '</span></div>';
+
+    rowAct.style.display = 'none';
+    btnCer.style.display = 'none';
+    btnIni.style.display = 'block';
+  }
+}
+
+function irow(icon, lbl, val) {
+  return '<div class="irow">' +
+    '<span class="irow-icon">' + icon + '</span>' +
+    '<span class="irow-lbl">'  + esc(lbl) + '</span>' +
+    '<span class="irow-val">'  + esc(String(val == null ? '—' : val)) + '</span>' +
+  '</div>';
+}
+
+// ── Iniciar turno ─────────────────────────────────────────────────────────────
+function goIniciar() {
+  var eq = ST.equipo;
+  document.getElementById('i-eq').textContent = eq.codigo + ' · ' + eq.nombre;
+  document.getElementById('i-horo-lbl').textContent =
+    eq.unidad === 'kms' ? 'Kilómetros iniciales' : 'Horómetro inicial';
+
+  var dl = document.getElementById('i-op-list');
+  dl.innerHTML = '';
+  (ST.operadores || []).forEach(function(op) {
+    dl.innerHTML += '<option value="' + esc(op) + '">';
+  });
+  document.getElementById('i-operador').value = '';
+
+  var selPr = document.getElementById('i-proyecto');
+  selPr.innerHTML = '<option value="">— Selecciona proyecto —</option>';
+  (ST.proyectos || []).forEach(function(p) {
+    selPr.innerHTML += '<option value="' + esc(p) + '"' + (p === eq.proyecto ? ' selected' : '') + '>' + esc(p) + '</option>';
+  });
+
+  var ref = ST.ultimoHorometro;
+  document.getElementById('i-horo-hint').textContent = ref != null
+    ? 'Referencia: último cierre = ' + ref + ' ' + eq.unidad
+    : 'Primer registro de este equipo';
+  document.getElementById('i-horo').value = '';
+  setBtn('btn-ini-ok', false, 'Confirmar Inicio de Turno');
+  show('s-iniciar');
+}
+
+function submitIniciar() {
+  var operador = document.getElementById('i-operador').value.trim();
+  var proyecto = document.getElementById('i-proyecto').value.trim();
+  var hStr     = document.getElementById('i-horo').value;
+  var hInicial = parseFloat(hStr);
+  if (!operador) { alert('Selecciona el operador responsable.'); return; }
+  if (!proyecto) { alert('Selecciona el proyecto.'); return; }
+  if (hStr === '' || isNaN(hInicial)) { alert('Ingresa el horómetro / kilómetros inicial.'); return; }
+
+  setBtn('btn-ini-ok', true, 'Enviando...');
+  apiPost({ action: 'abrirTurno', operador: operador, proyecto: proyecto, hInicial: hInicial })
+    .then(function(res) {
+      if (res.success) {
+        showResult('✅', 'Turno Iniciado', res.mensaje || 'El turno fue registrado correctamente.');
+      } else {
+        setBtn('btn-ini-ok', false, 'Confirmar Inicio de Turno');
+        showResult('❌', 'No se pudo iniciar', res.mensaje || 'Error desconocido.');
+      }
+    })
+    .catch(function() {
+      setBtn('btn-ini-ok', false, 'Confirmar Inicio de Turno');
+      showResult('❌', 'Error de conexión', 'No se pudo conectar. Intenta de nuevo.');
+    });
+}
+
+// ── Cerrar turno ──────────────────────────────────────────────────────────────
+function goCerrar() {
+  var dt = ST.datosTurno;
+  var eq = ST.equipo;
+  var uLbl = eq.unidad === 'kms' ? 'Km inicial' : 'Horóm. inicial';
+  document.getElementById('c-info').innerHTML =
+    '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.4px;text-transform:uppercase">Turno activo</div>' +
+    '<div style="font-weight:600;font-size:15px;margin:6px 0 12px">' + esc(eq.codigo + ' · ' + eq.nombre) + '</div>' +
+    '<div>' +
+      irow('👤', 'Operador',  dt.operador) +
+      irow('📁', 'Proyecto',  dt.proyecto) +
+      irow('📅', 'Inicio',    (dt.fechaInicio || '').substring(0, 10) || '—') +
+      irow('🕐', uLbl,        dt.hInicial != null ? dt.hInicial + ' ' + eq.unidad : '—') +
+    '</div>';
+  document.getElementById('c-horo-lbl').textContent =
+    eq.unidad === 'kms' ? 'Kilómetros finales' : 'Horómetro final';
+  document.getElementById('c-horo-hint').textContent =
+    'Debe ser mayor o igual a ' + dt.hInicial + ' ' + eq.unidad;
+  document.getElementById('c-horo').value = '';
+  setBtn('btn-cer-ok', false, 'Confirmar Cierre de Turno');
+  show('s-cerrar');
+}
+
+function submitCerrar() {
+  var hStr   = document.getElementById('c-horo').value;
+  var hFinal = parseFloat(hStr);
+  if (hStr === '' || isNaN(hFinal)) { alert('Ingresa el horómetro / kilómetros final.'); return; }
+
+  setBtn('btn-cer-ok', true, 'Cerrando...');
+  apiPost({ action: 'cerrarTurno', hFinal: hFinal })
+    .then(function(res) {
+      if (res.success) {
+        showResult('✅', 'Turno Cerrado', res.mensaje || 'El turno fue cerrado correctamente.');
+      } else {
+        setBtn('btn-cer-ok', false, 'Confirmar Cierre de Turno');
+        var msg = res.mensaje || 'Error desconocido.';
+        if (res.requiereWebApp) msg += '\n\nRegistra las actividades desde la app web y vuelve a intentar.';
+        showResult('❌', 'No se pudo cerrar', msg);
+      }
+    })
+    .catch(function() {
+      setBtn('btn-cer-ok', false, 'Confirmar Cierre de Turno');
+      showResult('❌', 'Error de conexión', 'No se pudo conectar. Intenta de nuevo.');
+    });
+}
+
+// ── Reportar falla ────────────────────────────────────────────────────────────
+function goFalla() {
+  var eq = ST.equipo;
+  var dt = ST.datosTurno;
+  document.getElementById('f-eq').textContent = eq.codigo + ' · ' + eq.nombre;
+  document.getElementById('f-op').textContent = dt ? 'Operador: ' + dt.operador : '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-tipo').value = 'Solo Reporte';
+  document.getElementById('f-prio').value = 'MEDIA';
+  setBtn('btn-falla-ok', false, 'Enviar Reporte de Falla');
+  show('s-falla');
+}
+
+function submitFalla() {
+  var desc = document.getElementById('f-desc').value.trim();
+  var tipo = document.getElementById('f-tipo').value;
+  var prio = document.getElementById('f-prio').value;
+  if (!desc) { alert('Describe la falla antes de enviar.'); return; }
+
+  setBtn('btn-falla-ok', true, 'Enviando...');
+  apiPost({ action: 'registrarFalla', falla: desc, tipoReporte: tipo, prioridad: prio })
+    .then(function(res) {
+      if (res.success) {
+        var msg = res.mensaje || 'Reporte enviado a Mesa de Ayuda.';
+        if (res.idFalla) msg += '\nID: ' + res.idFalla;
+        showResult('✅', 'Falla Reportada', msg);
+      } else {
+        setBtn('btn-falla-ok', false, 'Enviar Reporte de Falla');
+        showResult('❌', 'No se pudo enviar', res.mensaje || 'Error desconocido.');
+      }
+    })
+    .catch(function() {
+      setBtn('btn-falla-ok', false, 'Enviar Reporte de Falla');
+      showResult('❌', 'Error de conexión', 'No se pudo conectar. Intenta de nuevo.');
+    });
+}
+
+// ── Registrar actividad ───────────────────────────────────────────────────────
+function goActividad() {
+  var eq = ST.equipo;
+  var dt = ST.datosTurno;
+  document.getElementById('a-eq').textContent = eq.codigo + ' · ' + eq.nombre;
+  document.getElementById('a-turno').textContent = dt
+    ? 'Proyecto: ' + dt.proyecto + '  ·  Op: ' + dt.operador : '';
+
+  var cats   = ST.actividades || [];
+  var fgSel  = document.getElementById('a-fg-sel');
+  var fgTxt  = document.getElementById('a-fg-txt');
+  if (cats.length > 0) {
+    var selAct = document.getElementById('a-actividad');
+    selAct.innerHTML = '<option value="">— Selecciona actividad —</option>';
+    cats.forEach(function(c) {
+      selAct.innerHTML += '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+    });
+    fgSel.style.display = '';
+    fgTxt.style.display = 'none';
+  } else {
+    fgSel.style.display = 'none';
+    fgTxt.style.display = '';
+    document.getElementById('a-actividad-txt').value = '';
+  }
+
+  document.getElementById('a-desc').value = '';
+  document.getElementById('a-horo-lbl').textContent =
+    eq.unidad === 'kms' ? 'Kilómetros finales' : 'Horómetro final';
+  var ref = ST.horoIniActividad;
+  document.getElementById('a-horo-hint').textContent = ref != null
+    ? 'Referencia: último registrado = ' + ref + ' ' + eq.unidad : '';
+  document.getElementById('a-horo').value = '';
+  setBtn('btn-act-ok', false, 'Registrar Actividad');
+  show('s-actividad');
+}
+
+function submitActividad() {
+  var cats = ST.actividades || [];
+  var actividad;
+  if (cats.length > 0) {
+    actividad = document.getElementById('a-actividad').value.trim();
+    if (!actividad) { alert('Selecciona una actividad.'); return; }
+  } else {
+    actividad = document.getElementById('a-actividad-txt').value.trim();
+    if (!actividad) { alert('Describe la actividad realizada.'); return; }
+  }
+  var desc = document.getElementById('a-desc').value.trim();
+  var hStr = document.getElementById('a-horo').value;
+  var hFin = parseFloat(hStr);
+  if (hStr === '' || isNaN(hFin)) { alert('Ingresa el horómetro / kilómetros final.'); return; }
+
+  setBtn('btn-act-ok', true, 'Registrando...');
+  apiPost({ action: 'registrarActividad', actividad: actividad, descripcion: desc, horoFin: hFin })
+    .then(function(res) {
+      if (res.success) {
+        showResult('✅', 'Actividad Registrada', res.mensaje || 'La actividad fue registrada.');
+      } else {
+        setBtn('btn-act-ok', false, 'Registrar Actividad');
+        showResult('❌', 'No se pudo registrar', res.mensaje || 'Error desconocido.');
+      }
+    })
+    .catch(function() {
+      setBtn('btn-act-ok', false, 'Registrar Actividad');
+      showResult('❌', 'Error de conexión', 'No se pudo conectar. Intenta de nuevo.');
+    });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showResult(icon, title, msg) {
+  document.getElementById('r-icon').textContent  = icon;
+  document.getElementById('r-title').textContent = title;
+  document.getElementById('r-msg').textContent   = msg;
+  show('s-result');
+}
+
+function setBtn(id, disabled, text) {
+  var b = document.getElementById(id);
+  if (!b) return;
+  b.disabled    = disabled;
+  b.textContent = text;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+cargarEstado();
+</script>
+</body>
+</html>
