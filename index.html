@@ -6,104 +6,131 @@
   <title>ONEFix ESA Kiosk</title>
   <style>
     :root {
-      --bg:      #0f1117;
-      --surface: #1a1d27;
-      --surf2:   #252836;
-      --surf3:   #2d3347;
-      --accent:  #2563eb;
-      --success: #16a34a;
-      --danger:  #dc2626;
-      --warning: #d97706;
-      --text:    #f1f5f9;
-      --text2:   #94a3b8;
-      --text3:   #64748b;
-      --border:  #2d3748;
-      --r:       14px;
-      --rsm:     8px;
+      /* Paleta alineada con el sistema (look "Enterprise Command Center") */
+      --bg:       #0B1221;
+      --surface:  #131F37;   /* glass-card */
+      --surf2:    #081020;   /* inputs */
+      --surf3:    #1B2A47;
+      --accent:   #1D4ED8;   /* brand DEFAULT */
+      --accent2:  #2563eb;
+      --accent-lt:#60A5FA;
+      --brand-lt: #93C5FD;   /* brand light */
+      --success:  #16a34a;
+      --danger:   #dc2626;
+      --warning:  #d97706;
+      --text:     #f1f5f9;
+      --text2:    #94a3b8;
+      --text3:    #64748b;
+      --border:   #1E2F4C;
+      --r:        16px;
+      --rsm:      10px;
     }
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html, body {
-      width:100%; min-height:100vh; background:var(--bg); color:var(--text);
+      width:100%; min-height:100vh; color:var(--text);
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       -webkit-font-smoothing:antialiased;
+      background-color:var(--bg);
+      /* resplandor azul suave arriba (el "azul bonito" del sistema) */
+      background-image:
+        radial-gradient(1100px 560px at 50% -12%, rgba(29,78,216,.28), transparent 60%),
+        radial-gradient(800px 500px at 100% 0%, rgba(37,99,235,.12), transparent 55%);
+      background-attachment:fixed;
     }
 
     /* ── Screens ── */
-    .screen { display:none; min-height:100vh; padding:20px 16px 52px;
+    .screen { display:none; min-height:100vh; padding:22px 16px 54px;
       flex-direction:column; align-items:center; }
-    .screen.active { display:flex; }
+    .screen.active { display:flex; animation:fade .35s ease; }
     #s-loading, #s-result { justify-content:center; }
+    @keyframes fade { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
 
     /* ── Header bar ── */
     .hdr { width:100%; max-width:460px; display:flex; align-items:center;
-      justify-content:space-between; margin-bottom:22px; }
-    .brand { font-size:18px; font-weight:800; color:var(--accent); letter-spacing:-.5px; }
-    .brand span { color:var(--text); }
-    .brand-tag { font-size:10px; color:var(--text3); letter-spacing:1.5px;
-      text-transform:uppercase; margin-left:4px; vertical-align:middle; }
+      justify-content:space-between; margin-bottom:22px;
+      padding-bottom:16px; border-bottom:1px solid var(--border); }
+    .brand { font-size:20px; font-weight:900; color:var(--text); letter-spacing:-.5px; }
+    /* "Fix" y "ESA" comparten estilo/color (azul de marca), igual que el sistema */
+    .brand span { color:var(--accent-lt); }
+    .brand-tag { font-size:10px; color:var(--text3); letter-spacing:2px;
+      text-transform:uppercase; margin-left:8px; vertical-align:middle;
+      border:1px solid var(--border); padding:3px 7px; border-radius:99px; }
     .back-btn { background:none; border:none; color:var(--text2); font-size:14px;
       cursor:pointer; padding:6px 0; display:flex; align-items:center; gap:6px;
-      font-family:inherit; }
+      font-family:inherit; font-weight:600; }
+    .back-btn:active { color:var(--accent-lt); }
 
-    /* ── Card ── */
+    /* ── Card (glass) ── */
     .card { width:100%; max-width:460px; background:var(--surface);
       border:1px solid var(--border); border-radius:var(--r);
-      padding:18px; margin-bottom:12px; }
-    .card-sm { padding:14px; }
+      padding:20px; margin-bottom:12px;
+      box-shadow:0 25px 50px -18px rgba(0,0,0,.75); }
+    .card-sm { padding:16px; }
 
     /* ── Equipment card ── */
     .eq-top { display:flex; justify-content:space-between;
-      align-items:flex-start; gap:10px; margin-bottom:10px; }
-    .eq-name { font-size:21px; font-weight:700; line-height:1.2; }
-    .eq-code { font-size:12px; color:var(--text2); margin-top:3px; }
+      align-items:flex-start; gap:10px; margin-bottom:12px; }
+    .eq-name { font-size:22px; font-weight:800; line-height:1.15; letter-spacing:-.3px; }
+    .eq-code { font-size:12px; color:var(--text2); margin-top:4px; }
 
     /* ── Badges ── */
-    .badges { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
-    .badge { display:inline-flex; align-items:center; gap:5px;
-      font-size:12px; font-weight:600; padding:4px 10px;
+    .badges { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+    .badge { display:inline-flex; align-items:center; gap:6px;
+      font-size:12px; font-weight:700; padding:5px 11px;
       border-radius:99px; white-space:nowrap; }
-    .b-active  { background:rgba(22,163,74,.15);  color:#4ade80; border:1px solid rgba(22,163,74,.3); }
-    .b-idle    { background:rgba(100,116,139,.15); color:var(--text2); border:1px solid var(--border); }
+    .b-active  { background:rgba(22,163,74,.15);  color:#4ade80; border:1px solid rgba(22,163,74,.35); }
+    .b-idle    { background:rgba(100,116,139,.14); color:var(--text2); border:1px solid var(--border); }
     .b-elapsed { background:rgba(217,119,6,.15);  color:#fbbf24; border:1px solid rgba(217,119,6,.3); }
-    .b-type    { background:var(--surf2); color:var(--text2); border:1px solid var(--border);
-      font-size:11px; font-weight:500; }
-    .dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+    .b-type    { background:rgba(29,78,216,.16); color:var(--brand-lt); border:1px solid rgba(29,78,216,.35);
+      font-size:11px; font-weight:600; }
+    .dot { width:7px; height:7px; border-radius:50%; background:currentColor; flex-shrink:0;
+      box-shadow:0 0 0 3px rgba(255,255,255,.05); }
 
     /* ── Info rows ── */
-    .irow { display:flex; align-items:center; gap:10px; padding:7px 0;
+    .irow { display:flex; align-items:center; gap:10px; padding:9px 0;
       font-size:14px; border-top:1px solid var(--border); }
-    .irow:first-child { border-top:none; padding-top:0; }
+    .irow:first-child { border-top:none; padding-top:2px; }
     .irow-icon { color:var(--text3); flex-shrink:0; width:18px; text-align:center; font-size:15px; }
     .irow-lbl  { color:var(--text2); min-width:88px; font-size:13px; }
-    .irow-val  { font-weight:500; }
+    .irow-val  { font-weight:600; }
 
     /* ── Section title ── */
-    .sec-title { width:100%; max-width:460px; font-size:20px; font-weight:700; margin-bottom:16px; }
+    .sec-title { width:100%; max-width:460px; font-size:21px; font-weight:800;
+      margin-bottom:18px; letter-spacing:-.3px; display:flex; align-items:center; gap:10px; }
+    .sec-title::before { content:''; width:4px; height:22px; border-radius:99px;
+      background:linear-gradient(180deg,var(--accent-lt),var(--accent)); }
 
     /* ── Form fields ── */
-    .fg { width:100%; max-width:460px; margin-bottom:14px; }
-    label { display:block; font-size:11px; color:var(--text2); margin-bottom:6px;
-      font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
+    .fg { width:100%; max-width:460px; margin-bottom:15px; }
+    label { display:block; font-size:11px; color:var(--text2); margin-bottom:7px;
+      font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
     select, input[type="number"], input[type="text"], textarea {
-      width:100%; padding:13px 14px;
+      width:100%; padding:14px 15px;
       background:var(--surf2); border:1px solid var(--border);
       border-radius:var(--rsm); color:var(--text); font-size:15px;
-      -webkit-appearance:none; appearance:none; font-family:inherit; }
-    select:focus, input:focus, textarea:focus { outline:none; border-color:var(--accent); }
+      -webkit-appearance:none; appearance:none; font-family:inherit;
+      transition:border-color .15s, box-shadow .15s; }
+    select:focus, input:focus, textarea:focus { outline:none;
+      border-color:var(--accent-lt); box-shadow:0 0 0 3px rgba(96,165,250,.18); }
     select option { background:var(--surf2); }
-    textarea { min-height:100px; resize:vertical; line-height:1.5; }
-    .hint { font-size:12px; color:var(--text2); margin-top:5px; }
+    textarea { min-height:110px; resize:vertical; line-height:1.5; }
+    .hint { font-size:12px; color:var(--text2); margin-top:6px; }
 
     /* ── Buttons ── */
-    .btn { width:100%; max-width:460px; padding:15px; border-radius:var(--r);
-      border:none; font-size:16px; font-weight:600; cursor:pointer; letter-spacing:.2px;
-      margin-bottom:10px; transition:opacity .15s; font-family:inherit; }
-    .btn:active  { opacity:.78; }
-    .btn:disabled { opacity:.4; cursor:not-allowed; }
-    .btn-blue  { background:var(--accent);  color:#fff; }
-    .btn-green { background:var(--success); color:#fff; }
-    .btn-red   { background:var(--danger);  color:#fff; }
-    .btn-ghost { background:var(--surf2); color:var(--text); border:1px solid var(--border); }
+    .btn { width:100%; max-width:460px; padding:16px; border-radius:var(--r);
+      border:none; font-size:16px; font-weight:700; cursor:pointer; letter-spacing:.2px;
+      margin-bottom:10px; transition:transform .1s, opacity .15s, box-shadow .15s;
+      font-family:inherit; color:#fff; }
+    .btn:active  { transform:scale(.985); opacity:.92; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+    .btn-blue  { background:linear-gradient(135deg,var(--accent2) 0%,var(--accent) 100%);
+      box-shadow:0 10px 24px -8px rgba(29,78,216,.65); }
+    .btn-green { background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);
+      box-shadow:0 10px 24px -8px rgba(22,163,74,.6); }
+    .btn-red   { background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);
+      box-shadow:0 10px 24px -8px rgba(220,38,38,.55); }
+    .btn-ghost { background:rgba(255,255,255,.04); color:var(--text);
+      border:1px solid var(--border); box-shadow:none; }
 
     /* 2-column button row */
     .btn-row { width:100%; max-width:460px; display:grid;
@@ -111,16 +138,16 @@
     .btn-row .btn { margin-bottom:0; }
 
     /* ── Loading ── */
-    .spinner { width:44px; height:44px; border:4px solid rgba(255,255,255,.08);
-      border-top-color:var(--accent); border-radius:50%;
-      animation:spin .8s linear infinite; margin-bottom:16px; }
+    .spinner { width:46px; height:46px; border:4px solid rgba(96,165,250,.15);
+      border-top-color:var(--accent-lt); border-radius:50%;
+      animation:spin .8s linear infinite; margin-bottom:18px; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .ld-txt { color:var(--text2); font-size:15px; }
 
     /* ── Result ── */
     #s-result { text-align:center; }
     .ri { font-size:64px; line-height:1; margin-bottom:20px; }
-    .rt { font-size:22px; font-weight:700; margin-bottom:10px; }
+    .rt { font-size:23px; font-weight:800; margin-bottom:10px; letter-spacing:-.3px; }
     .rm { font-size:14px; color:var(--text2); line-height:1.7;
       margin-bottom:32px; max-width:320px; white-space:pre-line; }
 
@@ -144,7 +171,7 @@
 <!-- ERROR FATAL -->
 <div id="s-error" class="screen">
   <div class="hdr">
-    <div><span class="brand">ONE<span>Fix</span></span><span class="brand-tag">ESA Kiosk</span></div>
+    <div><span class="brand">ONE<span>Fix</span> <span>ESA</span></span><span class="brand-tag">Kiosk</span></div>
   </div>
   <div style="font-size:52px;margin-bottom:18px;text-align:center">⚠️</div>
   <div style="font-size:20px;font-weight:700;margin-bottom:12px;text-align:center">QR Inválido</div>
@@ -154,7 +181,7 @@
 <!-- MAIN -->
 <div id="s-main" class="screen">
   <div class="hdr">
-    <div><span class="brand">ONE<span>Fix</span></span><span class="brand-tag">ESA Kiosk</span></div>
+    <div><span class="brand">ONE<span>Fix</span> <span>ESA</span></span><span class="brand-tag">Kiosk</span></div>
   </div>
 
   <div class="card">
