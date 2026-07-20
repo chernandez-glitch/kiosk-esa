@@ -284,6 +284,11 @@
     <textarea id="f-desc" placeholder="Describe qué está fallando: sistema, componente o síntoma observado..."></textarea>
   </div>
 
+  <div class="fg" id="f-fg-sistema">
+    <label>Sistema afectado <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+    <select id="f-sistema"><option value="">— Sin especificar —</option></select>
+  </div>
+
   <div class="fg">
     <label>Tipo de reporte</label>
     <select id="f-tipo">
@@ -614,6 +619,22 @@ function goFalla() {
   document.getElementById('f-eq').textContent = eq.codigo + ' · ' + eq.nombre;
   document.getElementById('f-op').textContent = dt ? 'Operador: ' + dt.operador : '';
   document.getElementById('f-desc').value = '';
+
+  // Sistema afectado (OPCIONAL): solo se muestra si el backend envió catálogo
+  var fgSis  = document.getElementById('f-fg-sistema');
+  var selSis = document.getElementById('f-sistema');
+  var sis    = ST.sistemas || [];
+  if (sis.length > 0) {
+    selSis.innerHTML = '<option value="">— Sin especificar —</option>';
+    sis.forEach(function(s) {
+      selSis.innerHTML += '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+    });
+    selSis.value = '';
+    fgSis.style.display = '';
+  } else {
+    fgSis.style.display = 'none';
+  }
+
   document.getElementById('f-tipo').value = 'Solo Reporte';
   document.getElementById('f-prio').value = 'MEDIA';
   setBtn('btn-falla-ok', false, 'Enviar Reporte de Falla');
