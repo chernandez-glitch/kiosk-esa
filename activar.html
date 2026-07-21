@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ONEFix ESA · Crear contraseña</title>
+  <style>
+    :root{
+      --bg:#0B1221; --surface:#131F37; --surf2:#081020; --accent:#1D4ED8;
+      --accent2:#2563eb; --accent-lt:#60A5FA; --success:#16a34a; --danger:#dc2626;
+      --text:#f1f5f9; --text2:#94a3b8; --text3:#64748b; --border:#1E2F4C;
+      --r:16px; --rsm:10px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html,body{width:100%;min-height:100vh;color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      -webkit-font-smoothing:antialiased;background-color:var(--bg);
+      background-image:
+        radial-gradient(1100px 560px at 50% -12%, rgba(29,78,216,.28), transparent 60%),
+        radial-gradient(800px 500px at 100% 0%, rgba(37,99,235,.12), transparent 55%);
+      background-attachment:fixed;}
+    .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;padding:24px 16px;}
+    .screen{display:none;width:100%;max-width:420px;animation:fade .35s ease;}
+    .screen.active{display:block;}
+    @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+    .brand{font-size:22px;font-weight:900;text-align:center;letter-spacing:-.5px;margin-bottom:6px;}
+    .brand span{color:var(--accent-lt);}
+    .brand-tag{display:block;text-align:center;font-size:10px;color:var(--text3);
+      letter-spacing:2px;text-transform:uppercase;margin-bottom:26px;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+      padding:24px 20px;box-shadow:0 25px 50px -18px rgba(0,0,0,.75);}
+    .title{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;}
+    .sub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:20px;}
+    .sub b{color:var(--text);}
+    label{display:block;font-size:11px;color:var(--text2);margin:0 0 7px;
+      font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+    input[type=password],input[type=text]{width:100%;padding:14px 15px;background:var(--surf2);
+      border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);font-size:16px;
+      -webkit-appearance:none;appearance:none;font-family:inherit;
+      transition:border-color .15s,box-shadow .15s;margin-bottom:14px;}
+    input:focus{outline:none;border-color:var(--accent-lt);box-shadow:0 0 0 3px rgba(96,165,250,.18);}
+    .btn{width:100%;padding:16px;border-radius:var(--r);border:none;font-size:16px;
+      font-weight:700;cursor:pointer;font-family:inherit;color:#fff;letter-spacing:.2px;
+      transition:transform .1s,opacity .15s,box-shadow .15s;}
+    .btn:active{transform:scale(.985);opacity:.92;}
+    .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+    .btn-blue{background:linear-gradient(135deg,var(--accent2),var(--accent));
+      box-shadow:0 10px 24px -8px rgba(29,78,216,.65);}
+    .btn-green{background:linear-gradient(135deg,#22c55e,#16a34a);
+      box-shadow:0 10px 24px -8px rgba(22,163,74,.6);}
+    .msg{font-size:13px;margin-top:14px;line-height:1.5;text-align:center;min-height:18px;}
+    .msg.err{color:#fca5a5;}
+    .center{text-align:center;}
+    .ico{font-size:60px;line-height:1;margin-bottom:16px;}
+    .sp{width:44px;height:44px;border:4px solid rgba(96,165,250,.15);
+      border-top-color:var(--accent-lt);border-radius:50%;animation:spin .8s linear infinite;
+      margin:10px auto 18px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .toggle{background:none;border:none;color:var(--accent-lt);font-size:12px;font-weight:700;
+      cursor:pointer;font-family:inherit;padding:0;margin:-6px 0 16px;}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="brand">ONE<span>Fix</span> <span>ESA</span></div>
+    <span class="brand-tag">Grupo Platino</span>
+
+    <!-- CARGANDO -->
+    <div id="s-load" class="screen active">
+      <div class="card center">
+        <div class="sp"></div>
+        <div class="sub" style="margin:0">Verificando tu enlace...</div>
+      </div>
+    </div>
+
+    <!-- ENLACE INVÁLIDO -->
+    <div id="s-bad" class="screen">
+      <div class="card center">
+        <div class="ico">⚠️</div>
+        <div class="title">Enlace no válido</div>
+        <div class="sub" id="bad-msg" style="margin-bottom:0"></div>
+      </div>
+    </div>
+
+    <!-- CREAR CONTRASEÑA -->
+    <div id="s-form" class="screen">
+      <div class="card">
+        <div class="title" id="f-title">Crea tu contraseña</div>
+        <div class="sub" id="f-sub"></div>
+
+        <label>Nueva contraseña</label>
+        <input type="password" id="p1" placeholder="Mínimo 4 caracteres" autocomplete="new-password">
+
+        <label>Repite la contraseña</label>
+        <input type="password" id="p2" placeholder="Vuelve a escribirla" autocomplete="new-password">
+        <button type="button" class="toggle" id="tog" onclick="toggleVer()">Mostrar contraseñas</button>
+
+        <button class="btn btn-green" id="btn-ok" onclick="guardar()">Guardar contraseña</button>
+        <div class="msg" id="f-msg"></div>
+      </div>
+    </div>
+
+    <!-- ÉXITO -->
+    <div id="s-ok" class="screen">
+      <div class="card center">
+        <div class="ico">✅</div>
+        <div class="title" id="ok-title">¡Listo!</div>
+        <div class="sub" id="ok-sub"></div>
+        <a class="btn btn-blue" id="ok-app" style="display:block;text-decoration:none;text-align:center" href="#">Ir a la app</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Deployment /exec de producción de ESA. Se usa SOLO por fetch (nunca se abre como página).
+var GAS   = 'https://script.google.com/macros/s/AKfycbykRqzHOvaQMxYrJOM1mKgGMmbZF3GRdWKdlOYEfFtAlo-CyEZ2sTuODLhiP9OEg9px/exec';
+// URL de la app para el botón "Ir a la app": DEBE llevar el dominio (/a/macros/grupoplatino.hn/)
+// para que abra bien en celulares con varias cuentas de Google (evita el /u/N/ y el error de Drive).
+var APP_URL = 'https://script.google.com/a/macros/grupoplatino.hn/s/AKfycbykRqzHOvaQMxYrJOM1mKgGMmbZF3GRdWKdlOYEfFtAlo-CyEZ2sTuODLhiP9OEg9px/exec';
+var TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+var _info = null;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function apiGet(params){
+  var url = GAS + '?api=activar';
+  Object.keys(params).forEach(function(k){ url += '&' + k + '=' + encodeURIComponent(params[k]); });
+  return fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+}
+function apiPost(body){
+  return fetch(GAS, {
+    method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(body)
+  }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+}
+
+function toggleVer(){
+  var p1=document.getElementById('p1'), p2=document.getElementById('p2'), t=document.getElementById('tog');
+  var ver = p1.type === 'password';
+  p1.type = p2.type = ver ? 'text' : 'password';
+  t.textContent = ver ? 'Ocultar contraseñas' : 'Mostrar contraseñas';
+}
+
+function iniciar(){
+  if(!TOKEN){
+    document.getElementById('bad-msg').textContent = 'Este enlace no trae un código válido. Pide que te reenvíen la invitación.';
+    show('s-bad'); return;
+  }
+  apiGet({ action:'validar', token:TOKEN })
+    .then(function(res){
+      if(!res || !res.valid){
+        document.getElementById('bad-msg').textContent = (res && res.mensaje) || 'Enlace inválido o vencido.';
+        show('s-bad'); return;
+      }
+      _info = res;
+      var esRec = !!res.recuperacion;
+      document.getElementById('f-title').textContent = esRec ? 'Recupera tu contraseña' : 'Crea tu contraseña';
+      document.getElementById('f-sub').innerHTML =
+        (res.usuario ? 'Hola <b>' + esc(res.usuario) + '</b>. ' : '') +
+        (esRec ? 'Escribe tu nueva contraseña para acceder a ONEFix.' : 'Elige una contraseña para activar tu cuenta en ONEFix.');
+      show('s-form');
+      setTimeout(function(){ document.getElementById('p1').focus(); }, 150);
+    })
+    .catch(function(){
+      document.getElementById('bad-msg').textContent = 'No se pudo conectar. Verifica tu internet e intenta de nuevo.';
+      show('s-bad');
+    });
+}
+
+function guardar(){
+  var p1 = document.getElementById('p1').value;
+  var p2 = document.getElementById('p2').value;
+  var msg = document.getElementById('f-msg');
+  msg.className = 'msg err';
+  if(p1.length < 4){ msg.textContent = 'La contraseña debe tener al menos 4 caracteres.'; return; }
+  if(p1 !== p2){ msg.textContent = 'Las contraseñas no coinciden.'; return; }
+
+  var btn = document.getElementById('btn-ok');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  msg.textContent = '';
+  apiPost({ action:'establecerPassword', token:TOKEN, password:p1 })
+    .then(function(res){
+      if(res && res.success){
+        var u = (res.usuario || (_info && _info.usuario) || '');
+        document.getElementById('ok-title').textContent = '¡Contraseña creada!';
+        document.getElementById('ok-sub').innerHTML =
+          (u ? '<b>' + esc(u) + '</b>, tu' : 'Tu') + ' contraseña quedó guardada. ' +
+          'Ya puedes iniciar sesión en ONEFix con tu usuario y esta contraseña.';
+        document.getElementById('ok-app').href = APP_URL;
+        show('s-ok');
+      } else {
+        btn.disabled = false; btn.textContent = 'Guardar contraseña';
+        msg.className = 'msg err';
+        msg.textContent = (res && res.mensaje) || 'No se pudo guardar. Intenta de nuevo.';
+      }
+    })
+    .catch(function(){
+      btn.disabled = false; btn.textContent = 'Guardar contraseña';
+      msg.className = 'msg err';
+      msg.textContent = 'No se pudo conectar. Intenta de nuevo.';
+    });
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+iniciar();
+</script>
+</body>
+</html>
