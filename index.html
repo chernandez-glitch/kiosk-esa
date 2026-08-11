@@ -315,7 +315,7 @@
 <!-- ACTIVIDAD -->
 <div id="s-actividad" class="screen">
   <div class="hdr">
-    <button class="back-btn" onclick="goMain()">&#8249; Volver</button>
+    <button class="back-btn" onclick="volverDesdeActividad()">&#8249; Volver</button>
   </div>
   <div class="sec-title">Registrar Actividad</div>
 
@@ -347,6 +347,70 @@
 
   <div class="spacer"></div>
   <button class="btn btn-blue" id="btn-act-ok" onclick="submitActividad()">Registrar Actividad</button>
+  <button class="btn btn-ghost" onclick="volverDesdeActividad()">Cancelar</button>
+</div>
+
+<!-- JUSTIFICAR JORNADA -->
+<div id="s-jornada" class="screen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goMain()">&#8249; Volver</button>
+  </div>
+  <div class="sec-title">Justificar Jornada</div>
+
+  <div class="card card-sm" style="margin-bottom:14px">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Faltan horas de jornada por justificar. Agregá una actividad o un motivo de tiempo ocio.</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+      <span style="font-size:13px;color:#4ade80">✅ Tiempo productivo</span>
+      <span style="font-size:13px;font-weight:700" id="j-horasAct">0.0 h</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+      <span style="font-size:13px;color:#f87171">⚠️ Tiempo de paro</span>
+      <span style="font-size:13px;font-weight:700" id="j-horasFalla">0.0 h</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+      <span style="font-size:13px;color:#fbbf24">☕ Tiempo ocio</span>
+      <span style="font-size:13px;font-weight:700" id="j-horasOcio">0.0 h</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--border);margin-top:4px">
+      <span style="font-size:13px;font-weight:700">Total justificado</span>
+      <span style="font-size:13px;font-weight:700;color:var(--accent-lt)" id="j-total">0.0 h</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+      <span style="font-size:13px;font-weight:700">Mínimo requerido <span id="j-dia" style="font-weight:400;color:var(--text3);font-size:11px"></span></span>
+      <span style="font-size:13px;font-weight:700" id="j-esperado">8.0 h</span>
+    </div>
+  </div>
+
+  <div id="j-alerta-falta" class="card card-sm" style="margin-bottom:14px;background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.35)">
+    <div style="color:#fca5a5;font-weight:700;font-size:14px">⚠ Faltan <span id="j-faltan-h">0</span>h sin justificar</div>
+  </div>
+  <div id="j-alerta-ok" class="card card-sm" style="margin-bottom:14px;background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);display:none">
+    <div style="color:#4ade80;font-weight:700;font-size:14px">✓ Jornada completa</div>
+  </div>
+
+  <div id="j-lista-ocio-wrap" class="card card-sm" style="margin-bottom:14px;display:none">
+    <div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px">Tiempos ocio registrados</div>
+    <div id="j-lista-ocio"></div>
+  </div>
+
+  <div class="card card-sm" style="margin-bottom:14px">
+    <div style="font-size:11px;color:#fbbf24;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px">Agregar tiempo ocio</div>
+    <div class="fg" style="margin-bottom:10px">
+      <select id="j-motivo"><option value="">— Selecciona motivo —</option></select>
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <input type="number" id="j-horas" min="0.25" step="0.25" placeholder="Horas (ej. 1.5)">
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <input type="text" id="j-desc" placeholder="Descripción (opcional)">
+    </div>
+    <button class="btn" id="btn-jorn-agregar" style="background:linear-gradient(135deg,#f59e0b,#d97706);margin:12px 0 0" onclick="submitOcio()">+ Agregar</button>
+  </div>
+
+  <button class="btn btn-ghost" onclick="jornadaIrActividad()">≡ Agregar Actividad</button>
+
+  <div class="spacer"></div>
+  <button class="btn btn-green" id="btn-jorn-cerrar" disabled onclick="jornadaCerrarTurno()">Cerrar Turno</button>
   <button class="btn btn-ghost" onclick="goMain()">Cancelar</button>
 </div>
 
@@ -368,6 +432,11 @@ var GAS   = 'https://script.google.com/macros/s/AKfycbykRqzHOvaQMxYrJOM1mKgGMmbZ
 var TOKEN = new URLSearchParams(window.location.search).get('kiosk') || '';
 var ST    = null;
 var _timer = null;
+var _jornadaHFinal   = null;  // hFinal del intento de cierre pendiente de justificar
+var _cameFromJornada = false; // true si "Actividad" se abrió desde la pantalla de justificar jornada
+var MOTIVOS_OCIO_DEFAULT = ['Lluvia / Clima', 'Espera de material/repuesto', 'Sin asignación de trabajo',
+  'Descanso del operador', 'Mantenimiento menor', 'Traslado a otra zona',
+  'Reunión / Capacitación', 'Falta de combustible', 'Otros'];
 
 // ── Screens ─────────────────────────────────────────────────────────────────
 function show(id) {
@@ -595,20 +664,34 @@ function submitCerrar() {
   if (hStr === '' || isNaN(hFinal)) { alert('Ingresa el horómetro / kilómetros final.'); return; }
 
   setBtn('btn-cer-ok', true, 'Cerrando...');
-  apiPost({ action: 'cerrarTurno', hFinal: hFinal })
+  intentarCerrarTurno(hFinal).then(function(cerrado) {
+    if (!cerrado) setBtn('btn-cer-ok', false, 'Confirmar Cierre de Turno');
+  });
+}
+
+// Intenta cerrar el turno. Si el backend responde que faltan horas de jornada por
+// justificar, abre la pantalla de "Justificar Jornada" en vez de mostrar un error.
+// Devuelve una promesa que resuelve a true si el turno quedó cerrado.
+function intentarCerrarTurno(hFinal) {
+  return apiPost({ action: 'cerrarTurno', hFinal: hFinal })
     .then(function(res) {
       if (res.success) {
         showResult('✅', 'Turno Cerrado', res.mensaje || 'El turno fue cerrado correctamente.');
-      } else {
-        setBtn('btn-cer-ok', false, 'Confirmar Cierre de Turno');
-        var msg = res.mensaje || 'Error desconocido.';
-        if (res.requiereWebApp) msg += '\n\nRegistra las actividades desde la app web y vuelve a intentar.';
-        showResult('❌', 'No se pudo cerrar', msg);
+        return true;
       }
+      if (res.requiereJornada && res.balance) {
+        _jornadaHFinal = hFinal;
+        goJornada(res.balance);
+        return false;
+      }
+      var msg = res.mensaje || 'Error desconocido.';
+      if (res.requiereWebApp) msg += '\n\nRegistra las actividades desde la app web y vuelve a intentar.';
+      showResult('❌', 'No se pudo cerrar', msg);
+      return false;
     })
     .catch(function() {
-      setBtn('btn-cer-ok', false, 'Confirmar Cierre de Turno');
       showResult('❌', 'Error de conexión', 'No se pudo conectar. Intenta de nuevo.');
+      return false;
     });
 }
 
@@ -720,7 +803,14 @@ function submitActividad() {
   apiPost({ action: 'registrarActividad', actividad: actividad, descripcion: desc, horoFin: hFin })
     .then(function(res) {
       if (res.success) {
-        showResult('✅', 'Actividad Registrada', res.mensaje || 'La actividad fue registrada.');
+        if (_cameFromJornada) {
+          // Volvimos de justificar jornada: reintentar el cierre en vez de mostrar
+          // la pantalla de resultado genérica, para no cortar el flujo del operador.
+          _cameFromJornada = false;
+          intentarCerrarTurno(_jornadaHFinal);
+        } else {
+          showResult('✅', 'Actividad Registrada', res.mensaje || 'La actividad fue registrada.');
+        }
       } else {
         setBtn('btn-act-ok', false, 'Registrar Actividad');
         showResult('❌', 'No se pudo registrar', res.mensaje || 'Error desconocido.');
@@ -730,6 +820,98 @@ function submitActividad() {
       setBtn('btn-act-ok', false, 'Registrar Actividad');
       showResult('❌', 'Error de conexión', 'No se pudo conectar. Intenta de nuevo.');
     });
+}
+
+function volverDesdeActividad() {
+  if (_cameFromJornada) {
+    _cameFromJornada = false;
+    show('s-jornada');
+  } else {
+    goMain();
+  }
+}
+
+// ── Justificar jornada (horas mínimas del equipo) ─────────────────────────────
+function goJornada(balance) {
+  var sel = document.getElementById('j-motivo');
+  var motivos = (ST && ST.motivosOcio && ST.motivosOcio.length > 0) ? ST.motivosOcio : MOTIVOS_OCIO_DEFAULT;
+  sel.innerHTML = '<option value="">— Selecciona motivo —</option>' +
+    motivos.map(function(m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+  document.getElementById('j-horas').value = '';
+  document.getElementById('j-desc').value = '';
+  renderJornada(balance);
+  show('s-jornada');
+}
+
+function renderJornada(balance) {
+  document.getElementById('j-horasAct').textContent   = (balance.horasActividad || 0).toFixed(1) + ' h';
+  document.getElementById('j-horasFalla').textContent = (balance.horasFalla || 0).toFixed(1) + ' h';
+  document.getElementById('j-horasOcio').textContent  = (balance.horasOcio || 0).toFixed(1) + ' h';
+  document.getElementById('j-total').textContent      = (balance.totalJustificado || 0).toFixed(1) + ' h';
+  document.getElementById('j-esperado').textContent   = (balance.esperadas || 8).toFixed(1) + ' h';
+
+  var nombresDia = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  document.getElementById('j-dia').textContent = '(' + (nombresDia[balance.dia] || '') + ')';
+
+  var faltan = balance.faltan || 0;
+  var ok = faltan <= (balance.tolerancia != null ? balance.tolerancia : 0.25);
+  document.getElementById('j-alerta-falta').style.display = ok ? 'none' : '';
+  document.getElementById('j-alerta-ok').style.display    = ok ? '' : 'none';
+  document.getElementById('j-faltan-h').textContent = faltan.toFixed(2);
+  setBtn('btn-jorn-cerrar', !ok, 'Cerrar Turno');
+
+  var lista = document.getElementById('j-lista-ocio');
+  var wrap  = document.getElementById('j-lista-ocio-wrap');
+  var motivosOcio = balance.motivosOcio || [];
+  if (motivosOcio.length === 0) {
+    wrap.style.display = 'none';
+  } else {
+    wrap.style.display = '';
+    lista.innerHTML = motivosOcio.map(function(m) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">' +
+        '<span style="font-size:13px;color:var(--text2)">' + esc(m.motivo) + '</span>' +
+        '<span style="font-size:13px;font-weight:700;color:#fbbf24">' + (m.horas || 0).toFixed(2) + 'h</span>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+function submitOcio() {
+  var motivo = document.getElementById('j-motivo').value;
+  var horas  = parseFloat(document.getElementById('j-horas').value);
+  var desc   = document.getElementById('j-desc').value.trim();
+  if (!motivo) { alert('Selecciona un motivo.'); return; }
+  if (isNaN(horas) || horas <= 0) { alert('Las horas deben ser mayor a 0.'); return; }
+
+  setBtn('btn-jorn-agregar', true, 'Agregando...');
+  apiPost({ action: 'agregarTiempoOcio', motivo: motivo, horas: horas, descripcion: desc })
+    .then(function(res) {
+      setBtn('btn-jorn-agregar', false, '+ Agregar');
+      if (res.success) {
+        document.getElementById('j-horas').value = '';
+        document.getElementById('j-desc').value = '';
+        renderJornada(res);
+      } else {
+        alert(res.mensaje || 'No se pudo agregar el tiempo ocio.');
+      }
+    })
+    .catch(function() {
+      setBtn('btn-jorn-agregar', false, '+ Agregar');
+      alert('Error de conexión. No se pudo agregar el tiempo ocio.');
+    });
+}
+
+function jornadaIrActividad() {
+  _cameFromJornada = true;
+  goActividad();
+}
+
+function jornadaCerrarTurno() {
+  // No es necesario restaurar el botón en el caso "no cerrado": si sigue faltando
+  // jornada, renderJornada() ya lo vuelve a deshabilitar con el texto correcto; si
+  // hubo otro error, se navega a s-result y el estado de este botón deja de importar.
+  setBtn('btn-jorn-cerrar', true, 'Cerrando...');
+  intentarCerrarTurno(_jornadaHFinal);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
