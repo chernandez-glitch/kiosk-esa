@@ -434,6 +434,7 @@ var ST    = null;
 var _timer = null;
 var _jornadaHFinal   = null;  // hFinal del intento de cierre pendiente de justificar
 var _cameFromJornada = false; // true si "Actividad" se abrió desde la pantalla de justificar jornada
+var _cameFromCierreGap = false; // true si "Actividad" se abrió porque el cierre dio "requiereWebApp" (gap sin registrar)
 var MOTIVOS_OCIO_DEFAULT = ['Lluvia / Clima', 'Espera de material/repuesto', 'Sin asignación de trabajo',
   'Descanso del operador', 'Mantenimiento menor', 'Traslado a otra zona',
   'Reunión / Capacitación', 'Falta de combustible', 'Otros'];
@@ -684,9 +685,19 @@ function intentarCerrarTurno(hFinal) {
         goJornada(res.balance);
         return false;
       }
-      var msg = res.mensaje || 'Error desconocido.';
-      if (res.requiereWebApp) msg += '\n\nRegistra las actividades desde la app web y vuelve a intentar.';
-      showResult('❌', 'No se pudo cerrar', msg);
+      if (res.requiereWebApp) {
+        // Hay horas sin registrar en actividades: el kiosk sí puede resolver esto con
+        // su propio form "Actividad" (mismo patrón que "Justificar Jornada", pero con su
+        // propio flag para no pisar _cameFromJornada: el "Volver" de cada caso navega
+        // a una pantalla distinta). Reintenta este cierre apenas se guarde la actividad.
+        if (res.ultimoHoroMetro !== undefined && ST) ST.horoIniActividad = res.ultimoHoroMetro;
+        _jornadaHFinal = (res.hFinal !== undefined) ? res.hFinal : hFinal;
+        _cameFromCierreGap = true;
+        alert(res.mensaje || 'Hay horas sin registrar en actividades. Registrala y el turno se cerrará solo.');
+        goActividad();
+        return false;
+      }
+      showResult('❌', 'No se pudo cerrar', res.mensaje || 'Error desconocido.');
       return false;
     })
     .catch(function() {
@@ -803,10 +814,12 @@ function submitActividad() {
   apiPost({ action: 'registrarActividad', actividad: actividad, descripcion: desc, horoFin: hFin })
     .then(function(res) {
       if (res.success) {
-        if (_cameFromJornada) {
-          // Volvimos de justificar jornada: reintentar el cierre en vez de mostrar
-          // la pantalla de resultado genérica, para no cortar el flujo del operador.
+        if (_cameFromJornada || _cameFromCierreGap) {
+          // Volvimos de justificar jornada o de un cierre bloqueado por gap de
+          // actividades: reintentar el cierre en vez de mostrar la pantalla de
+          // resultado genérica, para no cortar el flujo del operador.
           _cameFromJornada = false;
+          _cameFromCierreGap = false;
           intentarCerrarTurno(_jornadaHFinal);
         } else {
           showResult('✅', 'Actividad Registrada', res.mensaje || 'La actividad fue registrada.');
@@ -826,6 +839,10 @@ function volverDesdeActividad() {
   if (_cameFromJornada) {
     _cameFromJornada = false;
     show('s-jornada');
+  } else if (_cameFromCierreGap) {
+    _cameFromCierreGap = false;
+    _jornadaHFinal = null;
+    goMain();
   } else {
     goMain();
   }
